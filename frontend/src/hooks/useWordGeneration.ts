@@ -5,7 +5,6 @@ import { checkHealth, refreshWords, ChatMessage as ApiChatMessage } from '../api
 
 export function useWordGeneration() {
   const fetchNewWords = useGridStore((state) => state.fetchNewWords)
-  const prefetchWords = useGridStore((state) => state.prefetchWords)
   const setWords = useGridStore((state) => state.setWords)
   const setWordsFromLookahead = useGridStore((state) => state.setWordsFromLookahead)
   const setLookahead = useGridStore((state) => state.setLookahead)
@@ -65,16 +64,12 @@ export function useWordGeneration() {
     const newSentence = [...currentSentence, word]
     const isSentenceEnd = /[.!?]$/.test(word)
 
-    setWordsFromLookahead(word)
-
     if (!isSentenceEnd) {
-      await prefetchWords(chatHistory, newSentence, false)
+      await fetchNewWords(chatHistory, newSentence, false)
     }
-  }, [isBackendConnected, messages, currentSentence, prefetchWords, setWordsFromLookahead])
+  }, [isBackendConnected, messages, currentSentence, fetchNewWords])
 
   const onRefresh = useCallback(async () => {
-    setWords(cachedWords)
-
     if (!isBackendConnected) return
 
     try {

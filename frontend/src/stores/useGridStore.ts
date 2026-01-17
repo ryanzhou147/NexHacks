@@ -29,11 +29,6 @@ interface GridState {
     currentSentence: string[],
     isSentenceStart: boolean
   ) => Promise<void>
-  prefetchWords: (
-    chatHistory: Array<{ text: string; isUser: boolean }>,
-    currentSentence: string[],
-    isSentenceStart: boolean
-  ) => Promise<void>
   setBackendConnected: (connected: boolean) => void
   resetToSentenceStarters: () => void
 }
@@ -47,8 +42,8 @@ const DEFAULT_STARTERS = sentenceStarters.slice(0, WORD_COUNT)
 
 export const useGridStore = create<GridState>((set, get) => ({
   cursorPosition: 0,
-  words: DEFAULT_STARTERS,
-  cachedWords: DEFAULT_STARTERS,
+  words: new Array(WORD_COUNT).fill(''),
+  cachedWords: new Array(WORD_COUNT).fill(''),
   mode: 'sentence-start',
   isLoading: false,
   isBackendConnected: false,
@@ -69,13 +64,10 @@ export const useGridStore = create<GridState>((set, get) => ({
     return { cursorPosition: newRow * GRID_SIZE + col }
   }),
 
-  refreshGrid: () => {
-    const state = get()
-    set({
-      words: state.cachedWords,
-      cursorPosition: 0
-    })
-  },
+  refreshGrid: () => set({
+    words: new Array(WORD_COUNT).fill(''),
+    cursorPosition: 0
+  }),
 
   setMode: (mode) => set({ mode }),
 
@@ -118,7 +110,10 @@ export const useGridStore = create<GridState>((set, get) => ({
   setGenerationTime: (ms) => set({ generationTime: ms }),
 
   fetchNewWords: async (chatHistory, currentSentence, isSentenceStart) => {
-    set({ isLoading: true })
+    set({
+      isLoading: true,
+      words: new Array(WORD_COUNT).fill('')
+    })
 
     try {
       const apiChatHistory: ApiChatMessage[] = chatHistory.map(msg => ({
@@ -135,7 +130,7 @@ export const useGridStore = create<GridState>((set, get) => ({
       set({
         words: response.words.slice(0, WORD_COUNT),
         cachedWords: response.cached_words.slice(0, WORD_COUNT),
-        lookahead: response.two_step_predictions || {},
+        lookahead: {},
         generationTime: response.two_step_time_ms || null,
         cursorPosition: 0,
         isLoading: false,
@@ -146,34 +141,6 @@ export const useGridStore = create<GridState>((set, get) => ({
       console.error('Failed to fetch words from backend:', error)
       set({
         isLoading: false,
-        isBackendConnected: false
-      })
-    }
-  },
-
-  prefetchWords: async (chatHistory, currentSentence, isSentenceStart) => {
-    try {
-      const apiChatHistory: ApiChatMessage[] = chatHistory.map(msg => ({
-        text: msg.text,
-        is_user: msg.isUser
-      }))
-
-      const response = await fetchWords({
-        chat_history: apiChatHistory,
-        current_sentence: currentSentence,
-        is_sentence_start: isSentenceStart
-      })
-
-      set({
-      cachedWords: response.cached_words.slice(0, WORD_COUNT),
-      lookahead: response.two_step_predictions || {},
-      generationTime: response.two_step_time_ms || null,
-      isBackendConnected: true,
-      mode: isSentenceStart ? 'sentence-start' : 'normal'
-    })
-    } catch (error) {
-      console.error('Failed to prefetch words from backend:', error)
-      set({
         isBackendConnected: false
       })
     }

@@ -33,7 +33,7 @@ export function ActionIndicators({ isBackendConnected, generationTime }: ActionI
       <div className={styles.status}>
         {generationTime && (
           <span className={styles.statusText} style={{ marginRight: '1rem', opacity: 0.7 }}>
-            Lookahead: {generationTime}ms
+            Generation: {generationTime}ms
           </span>
         )}
         <span className={`${styles.statusDot} ${isBackendConnected ? styles.connected : styles.disconnected}`} />

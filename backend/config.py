@@ -5,7 +5,8 @@ load_dotenv()
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
-MODEL = "mistralai/mistral-7b-instruct"
+MODEL = os.getenv("MODEL", "qwen2.5:1.5b")
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
 # Default sentence starters (most common, ordered by frequency)
 DEFAULT_SENTENCE_STARTERS = [
