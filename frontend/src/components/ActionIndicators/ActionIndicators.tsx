@@ -11,9 +11,10 @@ const INDICATORS = [
 
 interface ActionIndicatorsProps {
   isBackendConnected?: boolean
+  generationTime?: number | null
 }
 
-export function ActionIndicators({ isBackendConnected }: ActionIndicatorsProps) {
+export function ActionIndicators({ isBackendConnected, generationTime }: ActionIndicatorsProps) {
   const activeIndicator = useClenchStore((state) => state.activeIndicator)
   const isFading = useClenchStore((state) => state.isFading)
 
@@ -30,6 +31,11 @@ export function ActionIndicators({ isBackendConnected }: ActionIndicatorsProps) 
         ))}
       </div>
       <div className={styles.status}>
+        {generationTime && (
+          <span className={styles.statusText} style={{ marginRight: '1rem', opacity: 0.7 }}>
+            Lookahead: {generationTime}ms
+          </span>
+        )}
         <span className={`${styles.statusDot} ${isBackendConnected ? styles.connected : styles.disconnected}`} />
         <span className={styles.statusText}>
           {isBackendConnected ? 'AI Connected' : 'Offline'}

@@ -5,7 +5,7 @@ load_dotenv()
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
-MODEL = "google/gemini-3-flash-preview"
+MODEL = "mistralai/mistral-7b-instruct"
 
 # Default sentence starters (most common, ordered by frequency)
 DEFAULT_SENTENCE_STARTERS = [

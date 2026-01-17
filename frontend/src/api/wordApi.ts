@@ -14,6 +14,8 @@ export interface WordRequest {
 export interface WordResponse {
   words: string[]
   cached_words: string[]
+  two_step_predictions?: Record<string, string[]>
+  two_step_time_ms?: number
 }
 
 export async function fetchWords(request: WordRequest): Promise<WordResponse> {
@@ -69,6 +71,22 @@ export async function getCache(): Promise<{ cached_words: string[], used_words: 
 
 export async function clearUsedWords(): Promise<void> {
   await fetch(`${API_BASE_URL}/api/clear-used`, { method: 'POST' })
+}
+
+export async function resetBranch(request: WordRequest & { first_word: string }): Promise<{ words: string[] }> {
+  const response = await fetch(`${API_BASE_URL}/api/reset-branch`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  })
+
+  if (!response.ok) {
+    throw new Error(`Failed to reset branch: ${response.statusText}`)
+  }
+
+  return response.json()
 }
 
 export async function checkHealth(): Promise<boolean> {

@@ -5,8 +5,13 @@ import { checkHealth, refreshWords, ChatMessage as ApiChatMessage } from '../api
 
 export function useWordGeneration() {
   const fetchNewWords = useGridStore((state) => state.fetchNewWords)
+  const prefetchWords = useGridStore((state) => state.prefetchWords)
   const setWords = useGridStore((state) => state.setWords)
+  const setWordsFromLookahead = useGridStore((state) => state.setWordsFromLookahead)
+  const setLookahead = useGridStore((state) => state.setLookahead)
+  const setGenerationTime = useGridStore((state) => state.setGenerationTime)
   const setBackendConnected = useGridStore((state) => state.setBackendConnected)
+  const resetToSentenceStarters = useGridStore((state) => state.resetToSentenceStarters)
   const isBackendConnected = useGridStore((state) => state.isBackendConnected)
   const mode = useGridStore((state) => state.mode)
   const cachedWords = useGridStore((state) => state.cachedWords)
@@ -14,14 +19,12 @@ export function useWordGeneration() {
   const messages = useChatStore((state) => state.messages)
   const currentSentence = useChatStore((state) => state.currentSentence)
 
-  // Check backend health on mount
   useEffect(() => {
     const checkBackend = async () => {
       const healthy = await checkHealth()
       setBackendConnected(healthy)
 
       if (healthy) {
-        // Fetch initial words
         const chatHistory = messages.map(msg => ({
           text: msg.text,
           isUser: msg.isUser
@@ -32,13 +35,14 @@ export function useWordGeneration() {
 
     checkBackend()
 
-    // Check periodically
     const interval = setInterval(checkBackend, 30000)
     return () => clearInterval(interval)
   }, [])
 
-  // Fetch new words when sentence is completed (mode changes to sentence-start)
   const onSentenceComplete = useCallback(async () => {
+    // Immediately show sentence starters
+    resetToSentenceStarters()
+
     if (!isBackendConnected) return
 
     const chatHistory = messages.map(msg => ({
@@ -46,10 +50,10 @@ export function useWordGeneration() {
       isUser: msg.isUser
     }))
 
+    // Fetch updated predictions in background (though likely same as default)
     await fetchNewWords(chatHistory, [], true)
-  }, [isBackendConnected, messages, fetchNewWords])
+  }, [isBackendConnected, messages, fetchNewWords, resetToSentenceStarters])
 
-  // Fetch new words when a word is selected (continuing sentence)
   const onWordSelected = useCallback(async (word: string) => {
     if (!isBackendConnected) return
 
@@ -61,15 +65,14 @@ export function useWordGeneration() {
     const newSentence = [...currentSentence, word]
     const isSentenceEnd = /[.!?]$/.test(word)
 
-    if (!isSentenceEnd) {
-      await fetchNewWords(chatHistory, newSentence, false)
-    }
-    // If sentence ends, onSentenceComplete will be called separately
-  }, [isBackendConnected, messages, currentSentence, fetchNewWords])
+    setWordsFromLookahead(word)
 
-  // Handle refresh (3 clenches) - swap cache and fetch new cache
+    if (!isSentenceEnd) {
+      await prefetchWords(chatHistory, newSentence, false)
+    }
+  }, [isBackendConnected, messages, currentSentence, prefetchWords, setWordsFromLookahead])
+
   const onRefresh = useCallback(async () => {
-    // Immediately show cached words
     setWords(cachedWords)
 
     if (!isBackendConnected) return
@@ -88,15 +91,16 @@ export function useWordGeneration() {
       const response = await refreshWords({
         chat_history: apiChatHistory,
         current_sentence: currentSentence,
-        is_sentence_start: mode === 'sentence-start'
+        is_sentence_start: currentSentence.length === 0
       })
 
-      // Update cache with new words
       setWords(response.words, response.cached_words)
+      setLookahead(response.two_step_predictions || {})
+      setGenerationTime(response.two_step_time_ms || null)
     } catch (error) {
       console.error('Failed to refresh words:', error)
     }
-  }, [isBackendConnected, messages, currentSentence, mode, cachedWords, setWords])
+  }, [isBackendConnected, messages, currentSentence, cachedWords, setWords, setLookahead, setGenerationTime])
 
   return {
     onSentenceComplete,

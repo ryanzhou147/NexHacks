@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from models import WordRequest, WordResponse, RefreshRequest
+from models import WordRequest, WordResponse, RefreshRequest, ResetBranchRequest
 from word_generator import word_generator
 import asyncio
 
@@ -45,7 +45,18 @@ async def get_words(request: WordRequest):
             current_sentence=request.current_sentence,
             is_sentence_start=request.is_sentence_start
         )
-        return WordResponse(words=display_words, cached_words=cached_words)
+        two_step, duration_ms = await word_generator.generate_two_step_predictions(
+            chat_history=request.chat_history,
+            current_sentence=request.current_sentence,
+            is_sentence_start=request.is_sentence_start,
+            first_words=display_words
+        )
+        return WordResponse(
+            words=display_words, 
+            cached_words=cached_words, 
+            two_step_predictions=two_step,
+            two_step_time_ms=duration_ms
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -56,14 +67,19 @@ async def refresh_words(request: RefreshRequest, background_tasks: BackgroundTas
     This provides zero latency on refresh while preparing the next set.
     """
     try:
-        # Get cached words immediately (no waiting)
         display_words, _ = await word_generator.get_refresh_words(
             chat_history=request.chat_history,
             current_sentence=request.current_sentence,
             is_sentence_start=request.is_sentence_start
         )
 
-        # Start background task to generate new cache
+        two_step, duration_ms = await word_generator.generate_two_step_predictions(
+            chat_history=request.chat_history,
+            current_sentence=request.current_sentence,
+            is_sentence_start=request.is_sentence_start,
+            first_words=display_words
+        )
+
         background_tasks.add_task(
             word_generator.generate_cache_background,
             request.chat_history,
@@ -71,8 +87,12 @@ async def refresh_words(request: RefreshRequest, background_tasks: BackgroundTas
             request.is_sentence_start
         )
 
-        # Return current cache immediately, new cache will be empty until background completes
-        return WordResponse(words=display_words, cached_words=[])
+        return WordResponse(
+            words=display_words, 
+            cached_words=[], 
+            two_step_predictions=two_step,
+            two_step_time_ms=duration_ms
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -104,6 +124,19 @@ async def clear_used_words():
     """Clear used words tracking (called when starting new sentence)."""
     word_generator.clear_used_words()
     return {"status": "cleared"}
+
+@app.post("/api/reset-branch")
+async def reset_branch(request: ResetBranchRequest):
+    try:
+        words = await word_generator.reset_two_step_branch(
+            chat_history=request.chat_history,
+            current_sentence=request.current_sentence,
+            is_sentence_start=request.is_sentence_start,
+            first_word=request.first_word
+        )
+        return {"words": words}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/health")
 async def health_check():

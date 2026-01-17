@@ -17,6 +17,7 @@ function App() {
   const isOnRefreshButton = useGridStore((state) => state.isOnRefreshButton)
   const refreshGrid = useGridStore((state) => state.refreshGrid)
   const setMode = useGridStore((state) => state.setMode)
+  const generationTime = useGridStore((state) => state.generationTime)
 
   const messages = useChatStore((state) => state.messages)
   const addWord = useChatStore((state) => state.addWord)
@@ -66,7 +67,7 @@ function App() {
         />
       }
       rightPanel={<ChatPanel />}
-      bottomBar={<ActionIndicators isBackendConnected={isBackendConnected} />}
+      bottomBar={<ActionIndicators isBackendConnected={isBackendConnected} generationTime={generationTime} />}
     />
   )
 }

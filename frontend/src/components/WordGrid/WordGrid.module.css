@@ -39,8 +39,8 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(5, var(--cell-size));
-  grid-template-rows: repeat(5, var(--cell-size));
+  grid-template-columns: repeat(4, var(--cell-size));
+  grid-template-rows: repeat(4, var(--cell-size));
   gap: var(--grid-gap);
 }
 
