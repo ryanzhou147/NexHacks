@@ -4,12 +4,15 @@ import styles from './WordGrid.module.css'
 interface RefreshCellProps {
   isActive: boolean
   progress?: number  // Unused now, kept for compatibility
+  isAnimating?: boolean
+  animationDelay?: string
 }
 
-export function RefreshCell({ isActive }: RefreshCellProps) {
+export function RefreshCell({ isActive, isAnimating, animationDelay }: RefreshCellProps) {
   return (
     <motion.div
-      className={`${styles.cell} ${styles.refreshCell} ${isActive ? styles.active : ''}`}
+      className={`${styles.cell} ${styles.refreshCell} ${isActive ? styles.active : ''} ${isAnimating ? styles.cellAnimating : ''}`}
+      style={{ animationDelay }}
       initial={false}
       animate={{
         scale: isActive ? 1.02 : 1,

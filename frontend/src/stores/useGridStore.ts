@@ -21,6 +21,7 @@ interface GridState {
   getCurrentWord: () => string | null
   isOnRefreshButton: () => boolean
   setWords: (words: string[], cached?: string[]) => void
+  setLoading: (loading: boolean) => void
   setWordsFromLookahead: (word: string) => void
   setLookahead: (map: Record<string, string[]>) => void
   setGenerationTime: (ms: number | null) => void
@@ -92,6 +93,8 @@ export const useGridStore = create<GridState>((set, get) => ({
     cursorPosition: 0
   }),
 
+  setLoading: (loading) => set({ isLoading: loading }),
+
   setWordsFromLookahead: (word) => {
     const state = get()
     const nextWords = state.lookahead[word]
@@ -121,11 +124,17 @@ export const useGridStore = create<GridState>((set, get) => ({
         is_user: msg.isUser
       }))
 
-      const response = await fetchWords({
-        chat_history: apiChatHistory,
-        current_sentence: currentSentence,
-        is_sentence_start: isSentenceStart
-      })
+      // Create a promise that resolves after a minimum delay (e.g., 800ms) for animation
+      const delayPromise = new Promise(resolve => setTimeout(resolve, 800))
+
+      const [response] = await Promise.all([
+        fetchWords({
+          chat_history: apiChatHistory,
+          current_sentence: currentSentence,
+          is_sentence_start: isSentenceStart
+        }),
+        delayPromise
+      ])
 
       set({
         words: response.words.slice(0, WORD_COUNT),

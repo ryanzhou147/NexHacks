@@ -14,6 +14,7 @@ export function WordGrid({ onWordSelected, onRefresh }: WordGridProps) {
   const cursorPosition = useGridStore((state) => state.cursorPosition)
   const mode = useGridStore((state) => state.mode)
   const isBackendConnected = useGridStore((state) => state.isBackendConnected)
+  const isLoading = useGridStore((state) => state.isLoading)
 
   const { progress } = useAutoSelect({
     onSelect: onWordSelected,
@@ -22,12 +23,17 @@ export function WordGrid({ onWordSelected, onRefresh }: WordGridProps) {
 
   // Build grid cells: 24 words + 1 refresh button at index 4
   const renderCell = (gridIndex: number) => {
+    // Calculate stagger delay based on grid position (row by row)
+    const delay = `${gridIndex * 0.05}s`
+
     if (gridIndex === REFRESH_BUTTON_INDEX) {
       return (
         <RefreshCell
           key="refresh"
           isActive={cursorPosition === REFRESH_BUTTON_INDEX}
           progress={cursorPosition === REFRESH_BUTTON_INDEX ? progress : 0}
+          isAnimating={isLoading}
+          animationDelay={delay}
         />
       )
     }
@@ -43,6 +49,8 @@ export function WordGrid({ onWordSelected, onRefresh }: WordGridProps) {
         index={gridIndex}
         isActive={gridIndex === cursorPosition}
         progress={gridIndex === cursorPosition ? progress : 0}
+        isAnimating={isLoading}
+        animationDelay={delay}
       />
     )
   }

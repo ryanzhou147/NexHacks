@@ -11,6 +11,7 @@ export function useWordGeneration() {
   const setGenerationTime = useGridStore((state) => state.setGenerationTime)
   const setBackendConnected = useGridStore((state) => state.setBackendConnected)
   const resetToSentenceStarters = useGridStore((state) => state.resetToSentenceStarters)
+  const setLoading = useGridStore((state) => state.setLoading)
   const isBackendConnected = useGridStore((state) => state.isBackendConnected)
   const mode = useGridStore((state) => state.mode)
   const cachedWords = useGridStore((state) => state.cachedWords)
@@ -85,6 +86,8 @@ export function useWordGeneration() {
     if (!isBackendConnected) return
 
     try {
+      setLoading(true)
+
       const chatHistory = messages.map(msg => ({
         text: msg.text,
         isUser: msg.isUser
@@ -95,19 +98,26 @@ export function useWordGeneration() {
         is_user: msg.isUser
       }))
 
-      const response = await refreshWords({
-        chat_history: apiChatHistory,
-        current_sentence: currentSentence,
-        is_sentence_start: currentSentence.length === 0
-      })
+      const delayPromise = new Promise(resolve => setTimeout(resolve, 800))
+
+      const [response] = await Promise.all([
+        refreshWords({
+          chat_history: apiChatHistory,
+          current_sentence: currentSentence,
+          is_sentence_start: currentSentence.length === 0
+        }),
+        delayPromise
+      ])
 
       setWords(response.words, response.cached_words)
       setLookahead(response.two_step_predictions || {})
       setGenerationTime(response.two_step_time_ms || null)
     } catch (error) {
       console.error('Failed to refresh words:', error)
+    } finally {
+      setLoading(false)
     }
-  }, [isBackendConnected, messages, currentSentence, cachedWords, setWords, setLookahead, setGenerationTime])
+  }, [isBackendConnected, messages, currentSentence, cachedWords, setWords, setLookahead, setGenerationTime, setLoading])
 
   return {
     onSentenceComplete,

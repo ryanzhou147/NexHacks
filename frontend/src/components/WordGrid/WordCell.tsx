@@ -6,12 +6,15 @@ interface WordCellProps {
   index: number
   isActive: boolean
   progress?: number  // Unused now, kept for compatibility
+  isAnimating?: boolean
+  animationDelay?: string
 }
 
-export function WordCell({ word, index, isActive }: WordCellProps) {
+export function WordCell({ word, index, isActive, isAnimating, animationDelay }: WordCellProps) {
   return (
     <motion.div
-      className={`${styles.cell} ${isActive ? styles.active : ''}`}
+      className={`${styles.cell} ${isActive ? styles.active : ''} ${isAnimating ? styles.cellAnimating : ''}`}
+      style={{ animationDelay }}
       initial={false}
       animate={{
         scale: isActive ? 1.02 : 1,
