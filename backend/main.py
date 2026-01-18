@@ -7,7 +7,10 @@ import asyncio
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
+    # Startup - initialize OpenRouter client
+    print("Starting up - initializing OpenRouter client...")
+    word_generator.load_model()
+    print("OpenRouter client ready!")
     yield
     # Shutdown
     await word_generator.close()
@@ -56,19 +59,20 @@ async def get_words(request: WordRequest):
 @app.post("/api/refresh", response_model=WordResponse)
 async def refresh_words(request: RefreshRequest, background_tasks: BackgroundTasks):
     """
-    Instantly return cached words, then generate new cache in background.
-    This provides zero latency on refresh while preparing the next set.
+    Generate new words excluding previously shown words in this layer.
+    Each refresh shows completely different words until a word is selected.
     """
     try:
         display_words, _, duration_ms = await word_generator.generate_initial_words(
             chat_history=request.chat_history,
             current_sentence=request.current_sentence,
-            is_sentence_start=request.is_sentence_start
+            is_sentence_start=request.is_sentence_start,
+            is_refresh=True  # Don't clear tracking, just add to exclusions
         )
 
         return WordResponse(
-            words=display_words, 
-            cached_words=[], 
+            words=display_words,
+            cached_words=[],
             two_step_time_ms=duration_ms
         )
     except Exception as e:
@@ -118,7 +122,10 @@ async def reset_branch(request: ResetBranchRequest):
 
 @app.get("/api/health")
 async def health_check():
-    return {"status": "healthy"}
+    return {
+        "status": "healthy",
+        "model_loaded": word_generator.is_loaded
+    }
 
 
 if __name__ == "__main__":

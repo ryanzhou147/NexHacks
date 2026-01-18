@@ -19,6 +19,7 @@ export function useWordGeneration() {
   const currentSentence = useChatStore((state) => state.currentSentence)
 
   useEffect(() => {
+    // Initial backend check - only runs once on mount
     const checkBackend = async () => {
       const healthy = await checkHealth()
       setBackendConnected(healthy)
@@ -29,14 +30,25 @@ export function useWordGeneration() {
           isUser: msg.isUser
         }))
         fetchNewWords(chatHistory, currentSentence, mode === 'sentence-start')
+      } else {
+        resetToSentenceStarters()
       }
     }
 
     checkBackend()
-
-    const interval = setInterval(checkBackend, 30000)
-    return () => clearInterval(interval)
   }, [])
+
+  // Separate effect for periodic health checks - only updates connection status
+  // Does NOT fetch new words to avoid overwriting user's current grid
+  useEffect(() => {
+    const healthCheckOnly = async () => {
+      const healthy = await checkHealth()
+      setBackendConnected(healthy)
+    }
+
+    const interval = setInterval(healthCheckOnly, 30000)
+    return () => clearInterval(interval)
+  }, [setBackendConnected])
 
   const onSentenceComplete = useCallback(async () => {
     // Immediately show sentence starters

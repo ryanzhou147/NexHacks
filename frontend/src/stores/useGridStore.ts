@@ -42,8 +42,8 @@ const DEFAULT_STARTERS = sentenceStarters.slice(0, WORD_COUNT)
 
 export const useGridStore = create<GridState>((set, get) => ({
   cursorPosition: 0,
-  words: new Array(WORD_COUNT).fill(''),
-  cachedWords: new Array(WORD_COUNT).fill(''),
+  words: DEFAULT_STARTERS,
+  cachedWords: DEFAULT_STARTERS,
   mode: 'sentence-start',
   isLoading: false,
   isBackendConnected: false,

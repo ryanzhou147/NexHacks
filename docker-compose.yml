@@ -1,18 +1,10 @@
 version: '3.8'
 
 services:
-  backend:
-    build: ./backend
-    ports:
-      - "8000:8000"
-    environment:
-      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
-    restart: unless-stopped
-
   frontend:
     build: ./frontend
     ports:
       - "3000:80"
-    depends_on:
-      - backend
+    environment:
+      - VITE_API_URL=http://host.docker.internal:8000
     restart: unless-stopped
